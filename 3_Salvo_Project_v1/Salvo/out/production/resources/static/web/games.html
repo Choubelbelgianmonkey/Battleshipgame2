@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <title>Salvo!</title>
+</head>
+
+<link rel="icon" href="./images/favicon salvo.png" type="image/gif" sizes="16x16">
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.0/css/bootstrap.min.css">
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.0/js/bootstrap.min.js"></script>
+<link rel="stylesheet" href="./css/css.css">
+    
+<body>
+<div id="app">
+
+    <!--subscribe and login/logout START here-->
+    <div>
+        <div  v-if="currentPlayer == 'guest'">
+          
+          <div>
+            <button type="button" class="btn btn-info" data-toggle="collapse" data-target="#Subscribe">Subscribe!</button>
+
+            <div id="Subscribe" class="collapse">
+                <form id="player-form-sub" onsubmit="return false">
+
+                    <label>Name: <input type="text" v-model="firstname" name="firstname"></label>
+
+                    <label>Lastname : <input type="text" v-model="lastname" name="lastname"></label>
+
+                    <label>Email address: <input  type="email" v-model="username" name="username"></label>
+
+                    <label>Password<input type="password" v-model="password" name="password"></label>
+
+                    <button id="submit-btn" type="submit" v-on:click="subscribe()">Subscribe!</button>
+                </form>
+            </div>
+            
+            <button type="button" class="btn btn-info" data-toggle="collapse" data-target="#Login">Login!</button>
+            
+            <div id="Login" class="collapse">
+               
+                <form id="player-form-login" onsubmit="return false">
+
+                    <!-- onsubmit="return false" prevent the page to recharge once click-->
+
+                    <label>Email address: <input type="email" v-model="username" name="firstName"></label>
+
+                    <label>Password: <input type="password" v-model="password" name="password"></label>
+
+                    <button v-on:click="login()">Login!</button>
+
+                </form>
+            </div>
+        </div>
+           </div>
+           <div v-else >
+           
+           <h3> Your are logged as:  {{currentPlayer.username}} </h3>
+           
+            <form id="player-form-logout" onsubmit="return false">
+                <button type="button" v-on:click="logout()" class="btn btn-info">Logout!</button>
+                <button type="button" v-on:click="createNewGame()" class="btn btn-info">Create New game!</button>
+            </form>
+            </div>
+    </div>
+    <!--subscribe and login/logout END here-->
+    
+    
+
+<!--   board of all games STARTS here-->
+    <ol id="ol" v-if="gamesData.length > 0">
+       
+        <li v-for="game in gamesData" v-if="game.gamePlayer.length == 1"> 
+        {{game.date}}, {{game.gamePlayer[0].player.username}} is awaiting his opponent  
+        
+        {{game.id}}
+        
+                 <button type="button" v-on:click="joingame(game.id)" class="btn">JOIN!</button>
+        </li>
+        
+        <li v-for="game in gamesData" v-if="game.gamePlayer.length == 2">
+        {{game.date}}, {{game.gamePlayer[0].player.username}} vs {{game.gamePlayer[1].player.username}} 
+        {{game.id}}
+               
+                <button type="button" v-if="checkPlayerInGame(game.gamePlayer)" v-on:click="getMatchingGameplayer(game.gamePlayer)" class="btn">REJOIN!</button>
+        </li>
+
+    </ol>
+<!--   board of all games ENDS here-->
+
+<!--    leaderboard START here-->
+    <div class="leaderBoard" id="leaderBoard">
+
+    </div>
+<!--        leaderboard END here -->
+
+
+
+</div>
+
+<!--Vue script-->
+    <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+<!-- Vue resource-->
+    <script src="https://cdn.jsdelivr.net/npm/vue-resource@1.5.1"></script>
+
+    <script src="./javaScript/gamesVue.js"></script>
+
+    <!--<script src="./javaScript/gamesVanilla.js"></script>-->
+<!--//above can be use but i need to put all the tag as ol and li in coment-->
+
+</body>
+
+</html>

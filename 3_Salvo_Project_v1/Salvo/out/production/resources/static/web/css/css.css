@@ -1,0 +1,28 @@
+td {border-style: inset;
+    width: 40px;
+    height: 40px;
+    text-align: center;
+    color: red;
+    background-color: rgba(34, 77, 175, 0.72)}
+
+body {
+  background-image: url("../images/battleshipbackground.jpg");
+    background-size: cover;
+    background-repeat:repeat-y;
+
+}
+
+.beautify {display: flex;
+    
+        
+}
+
+.table2 {
+    margin-left: 200px;
+}
+
+
+.leaderboard{
+    display:table-cell; text-align:center; vertical-align:middle;
+    
+}
