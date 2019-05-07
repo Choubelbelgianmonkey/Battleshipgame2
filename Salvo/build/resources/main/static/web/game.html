@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+
+
+<html lang="en">
+
+
+<head>
+
+
+    <meta charset="UTF-8">
+
+
+    <title>Ship Locations!</title>
+
+
+    <link rel="icon" href="./images/favicon salvo.png" type="image/gif" sizes="16x16">
+
+    <script src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
+    
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+
+
+    <link rel="stylesheet" href="./css/css.css">
+
+
+</head>
+
+
+<body>
+
+<div class="container">
+   
+    <div id="app">
+
+
+        <h1>Battleship game!</h1>
+
+        <div>              
+              <div>     
+                     <h4 id="gamers"> </h4> 
+              </div>
+<div class="beautify col-sm">             
+
+<div class="table1" id="table1"></div>
+
+     
+<div class="table2" id="table2"></div>
+        </div>
+           
+           </div> 
+            
+                      <h4>My Boats</h4>
+                <li v-for="type in shipsName">{{type}}</li>
+
+</div>
+
+</div>
+
+    <!--Vue script-->
+    <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+    <!-- Vue resource-->
+    <script src="https://cdn.jsdelivr.net/npm/vue-resource@1.5.1"></script>
+
+    <script src="./javaScript/gameVue.js"></script>
+
+    <!--    <script src="./javaScript/gameVanilla.js"></script>-->
+    <!--//above can be use but i need to put all the tag as ol and li in coment-->
+
+</body>
+
+</html>

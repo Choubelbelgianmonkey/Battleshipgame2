@@ -1,0 +1,75 @@
+td {border-style: inset;
+    width: 40px;
+    height: 40px;
+    text-align: center;
+    color: red;
+    background-color: rgba(34, 77, 175, 0.72)}
+
+body {
+  background-image: url("../images/battleshipbackground.jpg");
+    background-size: cover;
+    background-repeat:repeat-y;
+}
+
+img{
+
+user-drag: none; 
+user-select: none;
+-moz-user-select: none;
+-webkit-user-drag: none;
+-webkit-user-select: none;
+-ms-user-select: none;
+}
+
+.beautify {display: flex;      
+}
+
+.table2 {
+    margin-left: 200px;
+}
+
+
+.leaderboard{
+    display:table-cell; text-align:center; vertical-align:middle;
+}
+
+/*drag and drop START here*/
+
+.shipColor {
+        background-color: #d9e033;
+}
+
+.hold {
+  border: solid 5px #ccc;
+    background-color: rgba(217, 224, 51, 0.35);
+}
+
+.empty {
+ 
+  margin: 10px;
+  border: solid 3px salmon;
+  background-color: #007d87;
+}
+
+.hovered {
+  background-color: #007d87;
+  border-style: dashed;
+}
+
+.outbound2{
+  width: 4px;
+  height: 4px; 
+  background-color: red;
+  border-style: none;
+
+}
+
+
+.outbound{
+  width: 10px;
+  height: 10px; 
+background-image: url(../images/letstry.jpg)
+
+}
+
+/*drag and drop END here*/

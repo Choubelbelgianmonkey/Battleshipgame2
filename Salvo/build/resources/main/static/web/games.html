@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <title>Salvo!</title>
+</head>
+
+<link rel="icon" href="./images/favicon salvo.png" type="image/gif" sizes="16x16">
+
+
+<body>
+
+<div id="app" >
+
+<ol id="ol" v-if="games.length > 0">
+    <li v-for="game in games" v-if="game.gamePlayer.length == 1"> {{game.date}}, {{game.gamePlayer[0].player.userName}} is awaiting his opponent </li>
+    <li v-for="game in games" v-if="game.gamePlayer.length == 2">{{game.date}}, {{game.gamePlayer[0].player.userName}} vs {{game.gamePlayer[1].player.userName}}</li>
+
+</ol>
+
+
+
+</div>
+
+
+
+
+<!--Vue script-->
+    <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+<!-- Vue resource-->
+    <script src="https://cdn.jsdelivr.net/npm/vue-resource@1.5.1"></script>
+
+    <script src="./javaScript/gamesVue.js"></script>
+
+    <!--<script src="./javaScript/gamesVanilla.js"></script>-->
+<!--//above can be use but i need to put all the tag as ol and li in coment-->
+
+</body>
+
+</html>
