@@ -16,7 +16,7 @@
     <link rel="icon" href="./images/favicon salvo.png" type="image/gif" sizes="16x16">
     
     <script src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
-    <script src="dist/jquery.pep.min.js"></script>
+   
 
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
 
@@ -27,9 +27,9 @@
 </head>
 
 
-<body id="body">
+<body id="body"  class="outbound3">
 
-    <div class="container" id="body">
+    <div class="container" id="body" id="body" @drop="dragEnd" @dragOver="dragEnter">
 
         <div id="app">
 
@@ -53,7 +53,7 @@
 <!--                    <div class="tableA" id="tableA" @drop="drop" @dragover="allowDrop"></div>-->
 <div class="tableA" id="tableA" @drop="dragEnd" @dragOver="dragEnter"></div>
 
-                    <div class="table2" id="table2"></div>
+                    <div class="tableB" id="tableB"></div>
                 </div>
 
 
@@ -62,10 +62,12 @@
 
                 <div>
 
-             <button type="button" v-on:click="sendShips()" class="btn btn-info">Ships ready!</button>
+             <button type="button" v-on:click="updateShipsPosition()" class="btn btn-info">Ships ready!</button>
 
 
                 </div>
+
+                <div><button type="button" v-on:click="sendSalvoes()" class="btn btn-info">Salvoes ready!</button></div>
 
 
             </div>

@@ -20,7 +20,6 @@ public class Ship {
 
     private String type;
 
-
     @ManyToOne(fetch = FetchType.EAGER)
         @JoinColumn(name="gameplayer_id")
         private GamePlayer gamePlayer;

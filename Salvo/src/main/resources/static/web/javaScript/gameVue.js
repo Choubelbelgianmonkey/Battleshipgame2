@@ -5,28 +5,33 @@ let salvo = new Vue({
             this.getUrlVars(),
             this.getData(),
             this.populateTable("tableA"),
-            this.populateTable("table2"),
-            this.sendShips()
+            this.populateTable("tableB")
+            // this.declareShips()
     },
 
     data: {
-
         //those are for security check (making sure the proper player access the data)
         gamePlayerURL: [],
         connectedPlayer: [],
         connectedUsername: [],
+        loadOccurence: 0,
+
 
         //those are for creating the page
         gpData: [],
-        gpShips: [],
         shipsName: [],
         currentGP: [],
         mySalvoes: [],
         hisSalvoes: [],
         search: [],
+        gameState: "placingShips",
+        gpShips: [{ "type": "Carrier", "location": ["A5", "B5", "C5", "D5", "E5"]},
+        { "type": "Submarine", "location": ["D1", "E1", "F1"] },
+        { "type": "Battleship", "location": ["G3", "G4", "G5", "G6"] },
+        { "type": "Destroyer", "location": ["C8", "C9", "C10"] },
+        { "type": "Patrol_Boat", "location": ["I5", "I6"] }],
 
         //drag and drop variables:
-
         draggingItem: [],
         ships: [],
         allIDs: [],
@@ -35,33 +40,40 @@ let salvo = new Vue({
         newAllIDs: [],
         witness: 0,
 
+
+        //for out of the grid drag and drop
         occurence: 0,
         hasBeenDone: false,
-        
+
+
+        //for dragging and dropping all part of the boat
+        allLocations: [],
+        currentPosition: [],
+        currentPositionIndex: [],
     },
 
     methods: {
         getUrlVars() {
-
             var vars = {};
             var parts = window.location.href.replace(/[?&]+([^=&]+)=([^&]*)/gi, function (m, key, value) {
                 vars = value;
 
-                //                    vars[key] = value; this prevent us to have directly the number of game player, instead we have GP=1
+                //vars[key] = value; this prevent us to have directly the number of game player, 
+                //...instead we have GP=1
             });
+            this.gamePlayerURL = vars.substr(0, 2);
 
 
-            this.gamePlayerURL = vars;
+           
         },
         getData() {
 
             let url = "/api/game_view/" + this.gamePlayerURL;
-
             const urlGames = "/api/games2";
 
-            //the first fecth provide me the data from the "gamplayer"API, which will afterward be used to populate the table
-            //... and the ships and salvo withins
 
+            //the first fecth provide me the data from the "gamplayer"API, which will afterward 
+            //.. be used to populate the table and the ships and salvo withins
             Promise.all([
 
                 fetch(url, {
@@ -71,31 +83,31 @@ let salvo = new Vue({
                         return response.json()
                     })
                     .then(function (gameJson) {
-
-
                         if (gameJson.hasOwnProperty("error")) {
                             alert(gameJson.error)
-
                             history.go(-1);
                         }
-
-                        // console.log(gameJson)
-
                         salvo.gpData = gameJson;
-                        salvo.gpShips = gameJson.game.ships
                         salvo.currentGP = gameJson.game.gamePlayer
                         salvo.mySalvoes = gameJson.game.mySalvoes
                         salvo.hisSalvoes = gameJson.game.hisSalvoes
 
+                        if(gameJson.game.ships.length != 0){
+                            
+                            salvo.gameState = "gameStarted";
+                            salvo.gpShips = gameJson.game.ships
+                           
+                        }
 
+                    
+
+                        // salvo.gpShips = gameJson.game.ships
                         salvo.colorizeGrid();
-
-
                     })
                     .catch(error => console.log(error)),
 
-                //the second fetch will make sure the data can be accessed, hence will get and isolate the username of the 
-                //... current player, afterward a function will be use to make sure this page is accessed by the proper person
+ //the second fetch will make sure the data can be accessed, hence will get and isolate the username of the 
+ //... current player, afterward a function will be use to make sure this page is accessed by the proper person
 
                 setTimeout(function () {
                     fetch(urlGames, {
@@ -117,6 +129,17 @@ let salvo = new Vue({
         },
         populateTable(tableHTML) {
 
+                    let body = document.getElementById("body")
+
+
+            if(this.gameState == "placingShips"){
+                    body.addEventListener("dragover", this.dragOver);
+                    body.addEventListener("dragenter", this.dragEnter);
+                    body.addEventListener("dragleave", this.dragLeave);
+                    body.addEventListener("drop", this.dragDrop);}
+
+
+
             const column = ["", "", "", "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "", ""]
             const see = document.getElementById(tableHTML);
             const table = document.createElement("table");
@@ -128,7 +151,7 @@ let salvo = new Vue({
 
             //bind the tbody  to the table element, the tbody will be then build with the 2 loops below
 
-            for (var i = 0; i < 15; i++) {
+            for (let i = 0; i < 15; i++) {
 
                 var tr = document.createElement("tr");
                 tbody.appendChild(tr);
@@ -138,6 +161,10 @@ let salvo = new Vue({
                 for (var j = 0; j < 15; j++) {
 
                     var td = document.createElement("td");
+
+                    if(tableHTML == "tableB"){
+                        td.addEventListener('click', this.gatheringSalvoes)
+                    }
 
                     if (i == 2 && j > 2 && j < 13) {
                         td.textContent = j - 2;
@@ -191,9 +218,10 @@ let salvo = new Vue({
             // and now, we are pushing the table to the body , which is the ID of the div in HTMl page
 
         },
-        colorizeGrid() {
+        colorizeGrid() {    
 
             let myShips = this.gpShips;
+
             let myShipsLocation = [];
 
             let hisSalvoes = this.hisSalvoes;
@@ -202,7 +230,7 @@ let salvo = new Vue({
             //this loops added My ships in the tableA and isolate their location in a variable to be compared 
             // the salvo of the opponents
             for (let i = 0; i < myShips.length; i++) {
-                let locs = myShips[i].locations;
+                let locs = myShips[i].location;
                 let types = myShips[i].type;
 
                 let frontShip = locs[0];
@@ -211,19 +239,24 @@ let salvo = new Vue({
 
                 for (let j = 0; j < locs.length; j++) {
 
+                    let bob = document.getElementById(locs[j] + "tableA")
+
                     document.getElementById(locs[0] + "tableA").classList.add("switchOrientation")
     
                   
-                    document.getElementById(locs[j] + "tableA").classList.add("shipColor");
-                    document.getElementById(locs[j] + "tableA").classList.add(types);
-                    document.getElementById(locs[j] + "tableA").setAttribute('data-shipLength', locs.length);
+                    bob.classList.add("shipColor");
+                    bob.classList.add(types);
+                    bob.setAttribute('data-shipLength', locs.length);
                     
-                    document.getElementById(locs[j] + "tableA").setAttribute('data-shipType', types);
-                    if (j == 0) {
-                        document.getElementById(locs[j] + "tableA").setAttribute("draggable", "true");
-                    }
-                    if (document.getElementById(locs[j] + "tableA").classList.contains("shipColor")) {
-                        document.getElementById(locs[j] + "tableA").classList.remove("empty");
+                    bob.setAttribute('data-shipType', types);
+
+
+                    if(this.gameState == "placingShips"){
+                    bob.setAttribute("draggable", "true");}
+
+
+                    if (bob.classList.contains("shipColor")) {
+                        bob.classList.remove("empty");
                     }
                     let empties = document.getElementsByClassName("empty");
                     let filled = document.getElementsByClassName("shipColor");
@@ -263,7 +296,7 @@ let salvo = new Vue({
                 }
             }
 
-            //this loop add my salvoes in the table2
+            //this loop add my salvoes in the tableB
             //added if statement if no salvoes has been fired
             if (mySalvoes !== undefined) {
                 for (let m = 0; m < mySalvoes.length; m++) {
@@ -272,9 +305,9 @@ let salvo = new Vue({
 
                     for (let n = 0; n < hisSalvoLocation.length; n++) {
 
-                        document.getElementById(hisSalvoLocation[n] + "table2").style.backgroundColor = "#007d87"
+                        document.getElementById(hisSalvoLocation[n] + "tableB").style.backgroundColor = "#007d87"
 
-                        document.getElementById(hisSalvoLocation[n] + "table2").textContent = mySalvoes[m].turn
+                        document.getElementById(hisSalvoLocation[n] + "tableB").textContent = mySalvoes[m].turn
                     }
                 }
             }
@@ -308,45 +341,6 @@ let salvo = new Vue({
             }
 
         },
-        sendShips() {
-
-
-            let url = "/api/games/players/" + this.gamePlayerURL + "/ships";
-            let myInit = {
-
-                method: 'POST',
-                mode: 'cors',
-                cache: 'default',
-                headers: {
-                    "Accept": "application/json",
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify([
-                    { "type": "Carrier", "location": ["A5", "B5", "C5", "D5", "E5"] },
-                    { "type": "Submarine", "location": ["D1", "E1", "F1"] },
-                    { "type": "Battleship", "location": ["G3", "G4", "G5", "G6"] },
-                    { "type": "Destroyer", "location": ["C8", "C9", "C10"] },
-                    { "type": "Patrol_Boat", "location": ["I5", "I6"] }
-                ])
-
-            };
-
-            fetch(url, myInit)
-                .then(function (response) {
-                    return response.json()
-                })
-                .then(function (gameJson) {
-                    if (!window.location.hash) {
-                        window.location = window.location + '#loaded';
-                        window.location.reload();
-                    }
-                })
-                .catch(function (error) {
-
-                    //  console.log("Request failed: " + error.message);
-                    // console.log(error)
-                });
-        },
         showShips() {
 
            // console.log("ici");
@@ -364,7 +358,7 @@ let salvo = new Vue({
                     document.getElementById(locs[j]).classList.add("shipColor");
                     document.getElementById(locs[j]).setAttribute('data-shipLength', locs.length);
                     document.getElementById(locs[j]).setAttribute('data-shipType', types);
-                    if (j == 0) {
+                    if (j == 0 && this.gameState == "placingShips") {
                         document.getElementById(locs[j]).setAttribute("draggable", "true");
                     }
                     if (document.getElementById(locs[j]).classList.contains("shipColor")) {
@@ -385,14 +379,81 @@ let salvo = new Vue({
                 }
             }
         },
+        updateShipsPosition(){
+
+            
+        //1: define new positions of ships
+
+
+                let updatedShips = this.gpShips;
+
+            
+            let url = "/api/games/players/"+ this.gamePlayerURL + "/ships"
+
+            let myInit = {
+
+                method: 'POST',
+                mode: 'cors',
+                cache: 'default',
+                headers: {
+                    "Accept": "application/json",
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify(updatedShips)
+
+            };
+
+            fetch(url, myInit)
+                .then(function (response) {
+                    return response.json()
+                })
+                .then(function (gameJson) {
+                    if (!window.location.hash) {
+                        window.location = window.location + '#loaded';
+                        window.location.reload();
+                    }
+                })
+                .catch(function (error) {
+
+                    //  console.log("Request failed: " + error.message);
+                    // console.log(error)
+                });
+        },
+        //DRAG AND DROP STARTS HERE
         dragStart(e) {
-         //to prevent the alter "out of grib" to be triggered several times, these need to be reset
+
+
+                //get all the element in the array:
+                let me = e.target.id;
+                let type = document.getElementById(e.target.id).getAttribute("data-shipType");
+                let locPerType = document.getElementsByClassName(type);
+                let idPerType = [];
+
+                for(let b=0; b < locPerType.length; b++){
+
+                    bob = locPerType[b].getAttribute("id")
+
+                    idPerType.push(bob)
+                }
+            
+
+                //check position of the dragged box in the boat
+                let indexDraggedEl = idPerType.indexOf(me)
+
+
+                //putting everything above to be reused by drop
+                this.allLocations = idPerType;
+                this.currentPosition = me;
+                this.currentPositionIndex = indexDraggedEl;
+
+
+         //to prevent the alert "out of grid" to be triggered several times, these need to be reset
          //... cf dragEnter for more info
             this.occurence = 0;
             this.hasBeenDone = false
 
+            
             // the following is to avoid conflict between "1" and "10"
-
             let letter = e.target.id.substr(0, 1);
 
             let test1 = (e.target.id).split("");
@@ -408,18 +469,10 @@ let salvo = new Vue({
 
             let number = test1.join("");
           
-        
-
             this.shipLength = document.getElementById(e.target.id).getAttribute("data-shipLength");
             this.shipType = document.getElementById(e.target.id).getAttribute("data-shipType");
-
             this.currentMovingBoat = document.getElementById(e.target.id).getAttribute("data-shipType");
 
-            //  console.log(e.target.id)
-            //  console.log(letter)
-            //  console.log(test1)
-            //  console.log(test2)
-            //  console.log(number)
 
             //check if vertical or horizontal
             let boatByType = [];
@@ -436,177 +489,57 @@ let salvo = new Vue({
                 }
             }
 
-            //count the size of the ship:
-
-            salvo.allIDs = [];
-
-
+            //rebuilt the ship from his origin point:
             if (this.boatVertical == true) {
-
                 for (let i = 0; i < this.shipLength; i++) {
-
                     let newID = salvo.incrementingLetter(letter, i) + number;
-
-
                     salvo.allIDs.push(newID);
                 }
 
             } else {
-
                 for (let i = 0; i < this.shipLength; i++) {
-
                     let newID = letter + (Number(number) + i);
-
                     salvo.allIDs.push(newID);
                 }
             }
 
+           // console.log(salvo.allIDs)
 
-            // for (let i = 0; i < this.shipLength; i++) {
-            //     let newID = letter + (Number(number) + i);
-            //     salvo.allIDs.push(newID)
-
-            // }
-
-            for (let i = 0; i < salvo.allIDs.length; i++) {
-
-                const bob = document.getElementById(salvo.allIDs[i] + "tableA");
-                const bob2 = document.getElementById(salvo.allIDs[0] + "tableA")
-
-                bob2.classList.remove("switchOrientation")
-                bob2.removeEventListener('click', this.switchOrientation)
-                bob2.innerHTML = "";
-                
-                
-                bob2.removeAttribute("draggable"); 
-
-                bob.removeAttribute("class");  
-                bob.removeAttribute("data-shipLength"); 
-                bob.removeAttribute("data-shipType");
-                bob.classList.add("empty");   
-            }
+            this.removeStuff(idPerType);
+            
         },
         dragEnd(e) {
    // console.log("END", e.target.id);
-
-
         },
         dragOver(e) {
-
-
-   
             // console.log("OVER", e.target.getAttribute("class"))
-
-
-    salvo.fullCell = false;
-    //dragOver is necessary otherwise the ship goes back to its original place
-    e.preventDefault();
-
-    let id = e.target;
-    let shipCellID = e.target.id;
-    // console.log(shipCellID)
-    let letter = shipCellID.substr(0, 1);
-    let number = shipCellID.substr(1, 1);
-    let allIDsOver = []
-    for (let i = 0; i < this.shipLength; i++) {
-        let newID = letter + (Number(number) + i)
-        //                console.log(newID)
-        allIDsOver.push(newID)
-    }
-
-    for (let i = 0; i < allIDsOver.length; i++) {
-        if(document.getElementById(allIDsOver[i] + "tableA") == null){}
-            else if (document.getElementById(allIDsOver[i] + "tableA").classList.contains("notAllowed")) {
-                 salvo.fullCell = true;
-              }
-    }
-    // console.log(allIDsOver)
+            //dragOver is necessary otherwise the ship goes back to its original place
+             e.preventDefault();
         },
         dragEnter(e) {
 
-         //  console.log("ENTER", e.target.id)
+         // console.log("ENTER", e.target.id)
         // console.log("ENTER", e.target.classList)
+       // console.log("putain")
            
             let outbound = e.target.getAttribute("class");
             
+                 if (outbound == "outbound" || outbound == "outbound3"){
 
-        if (outbound == "outbound"){
+                        if(this.hasBeenDone == false && this.occurence < 1){
 
-                if(this.hasBeenDone == false && this.occurence < 1){
+                            //console.log("if")
+                            this.refillGrid(this.allIDs);
+                            alert("dont go outside the grid!")
 
-                    //console.log("if")
-                    this.refillGrid(this.allIDs);
-                    alert("dont go outside the grid!")
-
-                this.occurence++;
-                this.hasBeenDone = true
-                }}
-
-        
-//if(this.hasBeenDone == true && this.occurence > 1)
-
-        e.preventDefault();
-
-    let id = e.target;
-    let shipCellID = e.target.id;
-
-    let letter = shipCellID.substr(0, 1);
-    let number = shipCellID.substr(1, 1);
-    let allIDsEnter = []
-
-    for (let i = 0; i < this.shipLength; i++) {
-        let newID = letter + (Number(number) + i)
-        allIDsEnter.push(newID)
-    }
-
-    for (let i = 0; i < allIDsEnter.length; i++) {
-        if(document.getElementById(allIDsEnter[i] + "tableA") == null){}
-
-
-       else if (document.getElementById(allIDsEnter[i] + "tableA").classList.contains("shipColor")) {
-            salvo.fullCell = true;
-            document.getElementById(allIDsEnter[i] + "tableA").classList.add("notAllowed")
-        }
-    }
-
-    
+                            this.occurence++;
+                            this.hasBeenDone = true
+                }
+            }
+        e.preventDefault();    
         },
         dragLeave(e) {
-
             // console.log("LEAVE", e.target.getAttribute("class"))
-
-
-
-    let letter = e.target.id.substr(0, 1);
-    let number = e.target.id.substr(1, 1);
-    //remove the ships here
-    let allIDsLeave = []
-    for (let i = 0; i < this.shipLength; i++) {
-        let newID = letter + (Number(number) + i);
-        allIDsLeave.push(newID)
-    }
-
-    for (let i = 0; i < allIDsLeave.length; i++) {
-
-        let bob = document.getElementById(allIDsLeave[i] + "tableA");
-
-        if(bob != null){
-
-        if (!bob.classList.contains("notAllowed") 
-            && !bob.classList.contains("shipColor")) {
-            bob.classList.remove("shipColor");
-            bob.removeAttribute("draggable");
-            bob.removeAttribute("data-shiplen gth");
-            bob.removeAttribute("data-shiptyp e");
-            bob.classList.add("empty"); 
-
-        }
-        if (bob.classList.contains("notAllowed")) {
-            bob.classList.remove("notAllowed")
-        }
-        }
-    }
-    // }
         },
         dragDrop(e) {
 
@@ -616,21 +549,58 @@ let salvo = new Vue({
             
     let types = salvo.gpShips;
     let letter = shipCellID.substr(0, 1);
+    let startingPoint = salvo.allIDs;
 
 
+
+            //this part is for  the "all box draggable"
+            //VERY HARD TO MAKE; BUT NOT IMPOSSIBLE!!!!!
+// console.log(this.allLocations)
+// console.log(this.currentPosition)
+// console.log(shipCellID)            
+// console.log(this.currentPositionIndex)
+// console.log(this.allLocations.length)
+
+
+//             let allDraggable = this.allLocations;
+//             let allDraggableOrigin = this.currentPosition;
+//             let AllDraggableShipLenght = (this.allLocations).length
+
+//             for(let b=0; b < allDraggable.length; b++){
+
+//                 if(allDraggableOrigin == allDraggable[b]){
+
+//                     console.log(allDraggable[b])
+                
+//                     let matchingPoint = allDraggable.indexOf(allDraggable[b]);
+
+//                     console.log(matchingPoint)
+
+//                         for (let d = 0; d < AllDraggableShipLenght; d++){
+
+
+
+//                         }
+//                 }
+                
+//             }
+            //this part is for  the "all box draggable"
+            //VERY HARD TO MAKE; BUT NOT IMPOSSIBLE!!!!!
+            
+            
 //this allow to use 10 as a number : 
-    let number = shipCellID.substr(1, 1);
     let numberbis = shipCellID.split("");
     let numbertris = (letter+"tableA").split("");
 
     for (let x =0; x < numberbis.length; x++) {
         for (let c = 0; c < numbertris.length; c++){
             if (numberbis[x] == numbertris[c]){
-                numberbis.splice(x, 1); 
+                numberbis.splice(x, 1);
             }
         }
     }
     let numberquis = numberbis.join("")
+
 
     if (this.boatVertical == true) {
 
@@ -639,60 +609,61 @@ let salvo = new Vue({
             let newID = salvo.incrementingLetter(letter, i) + numberquis;
 
             salvo.newAllIDs.push(newID)
+
         }
 
     } else {
 
-        for (let i = 0; i < this.shipLength; i++) {
+        for (let m = 0; m < this.shipLength; m++) {
 
-            let newID = letter + (Number(numberquis) + i)
+            let newID = letter + (Number(numberquis) +m)
 
             salvo.newAllIDs.push(newID)
+
         }
     }
 
-    //here we prevent the ship to collide inside the grid
+    //console.log(salvo.newAllIDs)
+// let last_step = [];
 
+//     for (let z = 0; z < this.allLocations.length; z++){
+
+//         last_step.push(this.allLocations[z] + "tableA")
+//     }
+
+
+    //here we prevent the ship to collide inside the grid
         let locsOutGrid = [];
         let allCellsClear =  [];
     
+
         for (let a = 0; a < salvo.newAllIDs.length; a++) {
-                
+            
             locsOutGrid.push(document.getElementById(salvo.newAllIDs[a] + "tableA")); 
-
             } 
+            
             if(!locsOutGrid.includes(null)) {
+            for (let y = 0; y < locsOutGrid.length; y++){
 
-            for (let m = 0; m < locsOutGrid.length; m++){
-
-                    if(locsOutGrid[m].classList.contains("empty") == false)
-                    {  allCellsClear.push(false)}
-                    else{
-                        allCellsClear.push(true)
-                    }
+                    if(locsOutGrid[y].classList.contains("empty") == true)
+                    {  allCellsClear.push(true)}
+                    else
+                    { allCellsClear.push(false)}
             }
         }
-
-         // console.log(locsOutGrid)
 
 
         if (locsOutGrid.includes(null) || allCellsClear.includes(false)) {
 
-           //  console.log("1")
-            salvo.refillGrid(salvo.allIDs)
+           //console.log("1")
+            salvo.refillGridPreviousLoc(this.allLocations)
+            
 
         } else {
-           //  console.log("2")
+           //console.log("2")
             salvo.refillGrid(salvo.newAllIDs);
         }
     
-
-    for (let y = 0; y < types.length; y++) {
-        if (this.shipType == types[y].type) {
-            types[y].location = salvo.allIDs
-        }
-    }
-        
             salvo.newAllIDs = [];
            
         },
@@ -710,19 +681,230 @@ let salvo = new Vue({
 
         }
     }
+        },    
+        addSwitchOrientation(){
+            
+           let domForButton = document.getElementsByClassName("switchOrientation");
+
+          // console.log(domForButton.getAttribute("id"))
+           
+           for (let i = 0; i < domForButton.length; i++){
+
+            let data_shipTypeValue = domForButton[i].getAttribute("data-shipType");
+            let idValue = domForButton[i].getAttribute("id")
+
+           // console.log(domForButton[i].getAttribute("id"))
+
+
+           if(this.gameState == "placingShips"){
+
+            domForButton[i].innerHTML = "<img src=./images/switchOrientation.png width=\'10px\' height=\'10px\' draggable=false data-shipType="+ data_shipTypeValue + " id="+idValue+">";
+            domForButton[i].addEventListener('click', this.switchOrientation);}
+
+            
+           }
+        },
+        switchOrientation(e){
+            
+            //console.log(e.target.id);
+
+            // to isolate the numbers and letters: 
+            let shipCellID = e.target.id;
+            let letter = shipCellID.substr(0, 1);
+
+            this.currentMovingBoat = document.getElementById(e.target.id).getAttribute("data-shipType");
+           //this allow to use 10 as a number : 
+            let numberbis = shipCellID.split("");
+            let numbertris = (letter+"tableA").split("");
+        
+            for (let x =0; x < numberbis.length; x++) {
+                for (let c = 0; c < numbertris.length; c++){
+                    if (numberbis[x] == numbertris[c]){
+                        numberbis.splice(x, 1); 
+                    }
+                }
+            }
+            let number = numberbis.join("")
+
+           // console.log(letter, number)
+
+
+            //to check if vertical or not: 
+            let isThisBoatVertical_Now = Boolean;
+            let boatByType = [];
+
+         //   console.log(document.getElementById(e.target.id))
+
+            let TargetedBoatType = document.getElementById(e.target.id).getAttribute("data-shipType")
+            let stupidDomEl = document.getElementsByClassName(TargetedBoatType);
+
+            for (let k = 0; k < stupidDomEl.length; k++) {
+                boatByType.push(stupidDomEl[k].id);
+            }
+            for (let l = 0; l < boatByType.length - 1; l++) {
+                if (boatByType[l][0] != boatByType[l + 1][0]) {
+                    isThisBoatVertical_Now = true;
+                } else {
+                    isThisBoatVertical_Now = false;
+                }
+            }
+
+
+            //rebuilt the ship locations:
+            let shipLength = boatByType.length;
+            let newIDs = []
+
+            if (isThisBoatVertical_Now == false) {
+
+                  for (let i = 0; i < shipLength; i++) {
+
+                         let newID = salvo.incrementingLetter(letter, i) + number;
+
+                         newIDs.push(newID)
+                            }
+
+                             } else {
+                    for (let i = 0; i < shipLength; i++) {
+
+                         let newID = letter + (Number(number) + i)
+
+                         newIDs.push(newID)
+                            }
+                        }
+                            
+                   // console.log(newIDs);
+                        
+
+                //make sure the newly oriented boat dont overlap another or get out of the grid
+           let locsOutGrid = [];
+           let allCellsClear =  [];
+       
+           for (let a = 0; a < shipLength; a++) {
+               locsOutGrid.push(document.getElementById(newIDs[a] + "tableA")); 
+               } 
+
+              // console.log(locsOutGrid)
+
+               if(!locsOutGrid.includes(null)) {
+   
+               for (let m = 1; m < shipLength; m++){ // i had to start at 1 and not zero, as the boat rotate to himself
+                       if(locsOutGrid[m].classList.contains("empty") == false)
+   
+                       {  allCellsClear.push(false)}
+   
+                       else
+                       { allCellsClear.push(true)}
+               }
+           }
+         //  console.log(allCellsClear)
+
+
+           //repopulate the table accordingly or make it move to show it wont work
+           if (locsOutGrid.includes(null) || allCellsClear.includes(false)) {
+
+            //console.log("1")
+           // salvo.fillGridAfterReorientation(boatByType)
+
+           for (let t = 0; t < boatByType.length; t++){
+
+           let bob = document.getElementById(boatByType[t]);
+            bob.classList.add("face")
+           }
+
+           setTimeout(function() {
+                        for (let g = 0; g < boatByType.length; g++){
+                            bob = document.getElementById(boatByType[g])
+                            bob.classList.remove("face")
+                        }}, 1000)
+ 
+         } else {
+             salvo.removeStuff(boatByType)
+            //  salvo.fillGridAfterReorientation(TargetedBoatType, newIDs);
+             salvo.refillGrid(newIDs)
+         }
+
+        },
+        removeStuff(oldShipIDs){
+
+            for (let a = 0; a < oldShipIDs.length; a++) {
+
+                const bob = document.getElementById(oldShipIDs[a]);
+                const bob2 = document.getElementById(oldShipIDs[0])
+
+                bob2.classList.remove("switchOrientation")
+                bob2.removeEventListener('click', this.switchOrientation)
+                bob2.innerHTML = "";
+                
+                bob.removeAttribute("draggable"); 
+                bob.removeAttribute("class");  
+                bob.removeAttribute("data-shipLength"); 
+                bob.removeAttribute("data-shipType");
+
+                bob.classList.add("empty");   
+
+             }
         },
         refillGrid(shipIDs){
+
+            //console.log("do I?")
+
+           //console.log(shipIDs)
 
         for (let i = 0; i < shipIDs.length; i++) {
 
         let bob = document.getElementById(shipIDs[i] + "tableA");
-        let bob2 = document.getElementById(salvo.allIDs[i] + "tableA");
+        let bob2 = document.getElementById(shipIDs[i]);
 
         // if (bob.classList.contains("empty")) {
 
-            document.getElementById(shipIDs[0] + "tableA").setAttribute("draggable", "true");
-            document.getElementById(shipIDs[0] + "tableA").addEventListener("dragstart", this.dragStart);
-            document.getElementById(shipIDs[0] + "tableA").classList.add("switchOrientation")
+            if(this.gameState == "placingShips"){
+                bob.setAttribute("draggable", "true");    }
+
+           
+            bob.addEventListener("dragstart", this.dragStart);
+            document.getElementById(shipIDs[0]+ "tableA").classList.add("switchOrientation")
+
+            bob.classList.add("shipColor")
+            bob.classList.add(this.currentMovingBoat);
+            bob.classList.remove("empty");
+            bob.setAttribute("data-shipLength", shipIDs.length);
+            bob.setAttribute('data-shipType', this.currentMovingBoat);
+
+
+            
+            for (let z = 0; z < shipIDs.length; z++) {
+                for(let x =0; x < salvo.gpShips.length; x++){
+                    if (this.currentMovingBoat == this.gpShips[x].type){
+                        this.gpShips[x].location = shipIDs;
+                    }
+                }
+            }
+
+            salvo.allIDs = [];
+            salvo.newAllIDs = [];
+            this.allLocations = [];
+
+            this.addSwitchOrientation();
+        
+             }
+        },
+        refillGridPreviousLoc(shipIDs){
+
+            //console.log("do I?")
+
+        //   console.log(shipIDs)
+
+        for (let i = 0; i < shipIDs.length; i++) {
+
+        let bob = document.getElementById(shipIDs[i]);
+        let bob2 = document.getElementById(shipIDs[i]);
+
+        if(this.gameState == "placingShips"){
+        bob.setAttribute("draggable", "true");}
+
+           
+            bob.addEventListener("dragstart", this.dragStart);
+            document.getElementById(shipIDs[0]).classList.add("switchOrientation")
 
             bob.classList.add("shipColor")
             bob.classList.add(this.currentMovingBoat);
@@ -732,45 +914,110 @@ let salvo = new Vue({
 
             salvo.allIDs = [];
             salvo.newAllIDs = [];
+            this.allLocations = [];
+
+            bob.classList.add("face")
+           
+
+            setTimeout(function() {
+                         for (let g = 0; g < shipIDs.length; g++){
+                             bob = document.getElementById(shipIDs[g])
+                             bob.classList.remove("face")
+                         }}, 1000)
 
             this.addSwitchOrientation();
-
+        
              }
         },
-        addSwitchOrientation(){
-            
-           let domForButton = document.getElementsByClassName("switchOrientation");
+        //DRAG AND DROP ENDS HEREç
+        gatheringSalvoes(e){
 
-           //console.log(domForButton)
            
-           for (let i = 0; i < domForButton.length; i++){
-            domForButton[i].innerHTML = "<img src=./images/switchOrientation.png width=\'10px\' height=\'10px\' draggable=´false´>";
-            domForButton[i].addEventListener('click', this.switchOrientation)
-           }
            
+            let shipCellID = e.target.id;
+            let bob = document.getElementById(shipCellID);
+            let bob2 = document.getElementsByClassName("mysalvoes")
 
+            if(!bob.classList.contains("mysalvoes")){
+                if(bob2.length <= 4){ 
+                    bob.classList.add("mysalvoes")
+                }} else {bob.classList.remove("mysalvoes")
+            }
         },
-        switchOrientation(){
+        sendSalvoes(){
 
-            let boatByType = [];
-            let stupidDomEl = document.getElementsByClassName(this.shipType);
+            let salvoes = document.getElementsByClassName("mysalvoes");
+            let cleanLocations = this.cleanIDsForLocations(salvoes);
+    
+            if(salvoes.length == 5){
 
-            for (let k = 0; k < stupidDomEl.length; k++) {
-                boatByType.push(stupidDomEl[k].id);
+
+
+            let url = "/api/games/players/"+ this.gamePlayerURL + "/salvoes"
+
+            let myInit = {
+
+                method: 'POST',
+                mode: 'cors',
+                cache: 'default',
+                headers: {
+                    "Accept": "application/json",
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify(cleanLocations)
+
+            };
+
+            fetch(url, myInit)
+                .then(function (response) {
+                    return response.json()
+                })
+                .then(function (gameJson) {
+                    if (!window.location.hash) {
+                        // window.location = window.location + '#loaded';
+                        // window.location.reload();
+                    }
+                })
+                .catch(function (error) {
+
+                    //  console.log("Request failed: " + error.message);
+                    // console.log(error)
+                });
+
+
+
+
+            }else{alert("you can send up to 5 salvoes at once!")}
+
+            
+        },
+        cleanIDsForLocations(domElements){
+
+           let cleanLocations = []
+           
+            for(let i = 0; i < domElements.length; i++){
+
+                let step0  = domElements[i].getAttribute("id")
+
+                letter = step0.substr(0, 1);
+
+                let step1 = step0.split("");
+                let step2 = (letter+"tableB").split("");
+
+                    for (let j = 0; j < step1.length; j++){
+                        for (let k=0; k < step2.length; k++){
+                            if(step1[j] == step2[k]){
+                                step1.splice(j, 1);
+                            }
+                        }
+                    }
+
+                    let step3 = step1.join("");
+                    let step4 = letter + step3
+                    cleanLocations.push(step4)
             }
-            for (let l = 0; l < boatByType.length - 1; l++) {
-                if (boatByType[l][0] != boatByType[l + 1][0]) {
-                    salvo.boatVertical = true;
-                } else {
-                    salvo.boatVertical = false;
-                }
-            }
 
-
-            console.log(e.target.id)
-           alert("i am switching")
-
-
+                return cleanLocations;
         }
     }
 })
