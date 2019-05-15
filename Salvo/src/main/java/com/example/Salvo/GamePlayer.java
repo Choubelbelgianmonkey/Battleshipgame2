@@ -91,8 +91,8 @@ public class GamePlayer {
         return salvoes;
     }
 
-    public void setSalvoes(Set<Salvo> salvoes) {
-        this.salvoes = salvoes;
+    public void setSalvoes(Salvo salvo) {
+        this.salvoes.add(salvo);
     }
 
     @Override

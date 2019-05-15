@@ -3,9 +3,8 @@ let salvo = new Vue({
 
     mounted() {
             this.getUrlVars(),
-            this.getData(),
-            this.populateTable("tableA"),
-            this.populateTable("tableB")
+            this.getData()
+
             // this.declareShips()
     },
 
@@ -87,6 +86,7 @@ let salvo = new Vue({
                             alert(gameJson.error)
                             history.go(-1);
                         }
+
                         salvo.gpData = gameJson;
                         salvo.currentGP = gameJson.game.gamePlayer
                         salvo.mySalvoes = gameJson.game.mySalvoes
@@ -99,10 +99,19 @@ let salvo = new Vue({
                            
                         }
 
-                    
+                        salvo.populateTable("tableA");
+                        salvo.populateTable("tableB");
 
-                        // salvo.gpShips = gameJson.game.ships
                         salvo.colorizeGrid();
+
+                    
+                        if(gameJson.game.mySalvoes.length != 0){
+                            salvo.manageSalvoes(salvo.mySalvoes, "tableB", "mySalvoes");
+                        }
+
+                        if(gameJson.game.hisSalvoes != undefined && gameJson.game.hisSalvoes.length != 0){
+                         salvo.manageSalvoes(salvo.hisSalvoes, "tableA", "hisSalvoes");
+                        } 
                     })
                     .catch(error => console.log(error)),
 
@@ -131,15 +140,6 @@ let salvo = new Vue({
 
                     let body = document.getElementById("body")
 
-
-            if(this.gameState == "placingShips"){
-                    body.addEventListener("dragover", this.dragOver);
-                    body.addEventListener("dragenter", this.dragEnter);
-                    body.addEventListener("dragleave", this.dragLeave);
-                    body.addEventListener("drop", this.dragDrop);}
-
-
-
             const column = ["", "", "", "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "", ""]
             const see = document.getElementById(tableHTML);
             const table = document.createElement("table");
@@ -158,13 +158,15 @@ let salvo = new Vue({
 
                 //bind the tr element to the tbody, the tr will be built below: 
 
-                for (var j = 0; j < 15; j++) {
+                  for (var j = 0; j < 15; j++) {
 
                     var td = document.createElement("td");
 
                     if(tableHTML == "tableB"){
+                    
+                    if(j >= 3 && i >= 3){
                         td.addEventListener('click', this.gatheringSalvoes)
-                    }
+                    }}
 
                     if (i == 2 && j > 2 && j < 13) {
                         td.textContent = j - 2;
@@ -217,15 +219,18 @@ let salvo = new Vue({
             //tbody bind to table
             // and now, we are pushing the table to the body , which is the ID of the div in HTMl page
 
+            if(this.gameState == "placingShips"){
+
+                    body.addEventListener("dragover", this.dragOver);
+                    body.addEventListener("dragenter", this.dragEnter);
+                    body.addEventListener("dragleave", this.dragLeave);
+                    body.addEventListener("drop", this.dragDrop)
+                }
+
         },
         colorizeGrid() {    
 
             let myShips = this.gpShips;
-
-            let myShipsLocation = [];
-
-            let hisSalvoes = this.hisSalvoes;
-            let mySalvoes = this.mySalvoes;
 
             //this loops added My ships in the tableA and isolate their location in a variable to be compared 
             // the salvo of the opponents
@@ -260,57 +265,28 @@ let salvo = new Vue({
                     }
                     let empties = document.getElementsByClassName("empty");
                     let filled = document.getElementsByClassName("shipColor");
+
                     for (let empty of empties) {
-                        empty.addEventListener("dragover", this.dragOver);
-                        empty.addEventListener("dragenter", this.dragEnter);
-                        empty.addEventListener("dragleave", this.dragLeave);
-                        empty.addEventListener("drop", this.dragDrop);
+                             if(this.gameState == "placingShips"){
+                                    empty.addEventListener("dragover", this.dragOver);
+                                    empty.addEventListener("dragenter", this.dragEnter);
+                                    empty.addEventListener("dragleave", this.dragLeave);
+                                    empty.addEventListener("drop", this.dragDrop);
+                        }
                     }
+
+               
+                    
                     for (let fill of filled) {
-                        fill.addEventListener("dragstart", this.dragStart);
-                        fill.addEventListener("dragend", this.dragEnd);
-                    }
-                }
-            }
-
-            //this loops added the salvo of the oppponent and set up color if they hit or miss, accordingly with
-            // the array set up on the previous loop
-            // added if statement in case no salvoes has been shot
-            if (hisSalvoes !== undefined) {
-                for (let k = 0; k < hisSalvoes.length; k++) {
-
-                    let hisSalvolocation = hisSalvoes[k].location;
-
-                    for (l = 0; l < hisSalvolocation.length; l++) {
-
-                        if (myShipsLocation.includes(hisSalvolocation[l])) {
-
-                            document.getElementById(hisSalvolocation[l] + "tableA").textContent = hisSalvoes[k].turn
-
-                            document.getElementById(hisSalvolocation[l] + "tableA").style.backgroundColor = "#d00909"
-                        } else {
-                            document.getElementById(hisSalvolocation[l] + "tableA").style.backgroundColor = "#007d87"
-                            document.getElementById(hisSalvolocation[l] + "tableA").textContent = hisSalvoes[k].turn
+                        if(this.gameState == "placingShips"){
+                                fill.addEventListener("dragstart", this.dragStart);
+                                fill.addEventListener("dragend", this.dragEnd);
                         }
                     }
                 }
             }
 
-            //this loop add my salvoes in the tableB
-            //added if statement if no salvoes has been fired
-            if (mySalvoes !== undefined) {
-                for (let m = 0; m < mySalvoes.length; m++) {
-
-                    let hisSalvoLocation = mySalvoes[m].location;
-
-                    for (let n = 0; n < hisSalvoLocation.length; n++) {
-
-                        document.getElementById(hisSalvoLocation[n] + "tableB").style.backgroundColor = "#007d87"
-
-                        document.getElementById(hisSalvoLocation[n] + "tableB").textContent = mySalvoes[m].turn
-                    }
-                }
-            }
+           
 
             this.addSwitchOrientation()
 
@@ -543,7 +519,7 @@ let salvo = new Vue({
         },
         dragDrop(e) {
 
-               // console.log("DROP", e.target.getAttribute("class"))
+               //console.log("DROP", e.target.getAttribute("class"))
 
     let shipCellID = e.target.id;
             
@@ -666,22 +642,7 @@ let salvo = new Vue({
     
             salvo.newAllIDs = [];
            
-        },
-        incrementingLetter(letter, occurence){
-
-    let alphabet = ("ABCDEFGHIJ").split("");
-
-    for (let i = 0; i < alphabet.length; i++) {
-
-        if (letter == alphabet[i]) {
-
-            let k = i + occurence;
-
-            return alphabet[k];
-
-        }
-    }
-        },    
+        }, 
         addSwitchOrientation(){
             
            let domForButton = document.getElementsByClassName("switchOrientation");
@@ -858,10 +819,15 @@ let salvo = new Vue({
         // if (bob.classList.contains("empty")) {
 
             if(this.gameState == "placingShips"){
-                bob.setAttribute("draggable", "true");    }
+
+               
+                bob.setAttribute("draggable", "true");   
+                bob.addEventListener("dragstart", this.dragStart); }
+
+              
 
            
-            bob.addEventListener("dragstart", this.dragStart);
+           
             document.getElementById(shipIDs[0]+ "tableA").classList.add("switchOrientation")
 
             bob.classList.add("shipColor")
@@ -900,10 +866,12 @@ let salvo = new Vue({
         let bob2 = document.getElementById(shipIDs[i]);
 
         if(this.gameState == "placingShips"){
-        bob.setAttribute("draggable", "true");}
+            
+        bob.setAttribute("draggable", "true");
+        bob.addEventListener("dragstart", this.dragStart);}
 
-           
-            bob.addEventListener("dragstart", this.dragStart);
+     
+            
             document.getElementById(shipIDs[0]).classList.add("switchOrientation")
 
             bob.classList.add("shipColor")
@@ -929,11 +897,10 @@ let salvo = new Vue({
         
              }
         },
-        //DRAG AND DROP ENDS HEREç
+        //DRAG AND DROP ENDS HERE
+        //SALVO MANAGEMENT STARTS HERE
         gatheringSalvoes(e){
 
-           
-           
             let shipCellID = e.target.id;
             let bob = document.getElementById(shipCellID);
             let bob2 = document.getElementsByClassName("mysalvoes")
@@ -947,17 +914,15 @@ let salvo = new Vue({
         sendSalvoes(){
 
             let salvoes = document.getElementsByClassName("mysalvoes");
-            let cleanLocations = this.cleanIDsForLocations(salvoes);
-    
+
             if(salvoes.length == 5){
 
-
-
+            let cleanLocations = this.cleanIDsForLocations(salvoes, "tableB");
             let url = "/api/games/players/"+ this.gamePlayerURL + "/salvoes"
 
             let myInit = {
 
-                method: 'POST',
+                method: 'POST',     
                 mode: 'cors',
                 cache: 'default',
                 headers: {
@@ -973,51 +938,136 @@ let salvo = new Vue({
                     return response.json()
                 })
                 .then(function (gameJson) {
-                    if (!window.location.hash) {
-                        // window.location = window.location + '#loaded';
-                        // window.location.reload();
-                    }
+                    // if (!window.location.hash) {
+                        window.location = window.location + '#loaded';
+                        window.location.reload();
+                    // }
                 })
-                .catch(function (error) {
-
-                    //  console.log("Request failed: " + error.message);
-                    // console.log(error)
-                });
-
-
-
+                .catch(error => console.log(error));
 
             }else{alert("you can send up to 5 salvoes at once!")}
-
             
         },
-        cleanIDsForLocations(domElements){
+        manageSalvoes(targetedcells, tableHTML, indicator){
 
-           let cleanLocations = []
-           
-            for(let i = 0; i < domElements.length; i++){
+            //first we define and colorize MY SALVOES
+            let step1 = targetedcells;
 
-                let step0  = domElements[i].getAttribute("id")
+            if(indicator === "mySalvoes"){
 
+            for(let i=0; i < step1.length; i++){
+                 let step2 = step1[i].location;
+                 let step3 = step1[i].turn;
+                for(let k=0; k < step2.length; k++){
+                        document.getElementById(step2[k] + tableHTML).style.backgroundColor = "green"
+                        document.getElementById(step2[k] + tableHTML).textContent = step3
+                }
+            }
+        }
+
+             //this loops added the salvo of the oppponent and set up color if they hit or miss, accordingly with
+            // the array set up on the previous loop
+        
+            let step4 = targetedcells;
+            let myShipsLocations = document.getElementsByClassName("shipColor");
+            let myShipsLocations_cleaned = this.cleanIDsForLocations(myShipsLocations, "tableA");
+            
+            if (indicator === "hisSalvoes"){
+                for (let l = 0; l < step4.length; l++) {
+                        let step5 = step4[l].location;
+                        let step6 = step4[l].turn;
+                    for (let m = 0; m < step5.length; m++) {
+
+                        if (myShipsLocations_cleaned.includes(step5[m])) {
+
+                            document.getElementById(step5[m] + "tableA").textContent = step6
+
+                            document.getElementById(step5[m] + "tableA").style.backgroundColor = "red"
+                        } else {
+                            document.getElementById(step5[m] + "tableA").style.backgroundColor = "green"
+                            document.getElementById(step5[m] + "tableA").textContent = step6
+                        }
+                    }
+                }
+            }
+        },
+        //SALVO MANAGEMENT ENDS HERE
+        //UTILITY METHODS STARTS HERE
+        cleanIDsForLocations(domElements, tableID){
+
+            //as the "domElements" part from the method manageSalvoes() is an HTML collection, domElements.lenght == 0
+            //... as this function is also use for other purposes, I added a conditional to manage this particular issue
+            // ... "lenght_for_manageSalvoes = 100" as they are 100 cells max per table
+
+            let cleanLocations = []; 
+            let lenght_for_manageSalvoes = 100;
+
+            if(domElements.length == 0){
+
+                for(let i = 0 ; i < lenght_for_manageSalvoes; i++) {
+
+                    let step0  = domElements.item(i);
+                    letter = step0.substr(0, 1);
+    
+                    let step1 = step0.split("");
+                    let step2 = (letter + tableID).split("");
+    
+                        for (let j = 0; j < step1.length; j++){
+                            for (let k=0; k < step2.length; k++){
+                                if(step1[j] == step2[k]){
+                                    step1.splice(j, 1);
+                                }
+                            }
+                        }
+    
+                        let step3 = step1.join("");
+                        let step4 = letter + step3
+    
+                        cleanLocations.push(step4)
+                }
+
+            } else {
+            
+            for(let l = 0 ; l < domElements.length; l++) {
+
+                let step0  = domElements[l].getAttribute("id");
                 letter = step0.substr(0, 1);
 
                 let step1 = step0.split("");
-                let step2 = (letter+"tableB").split("");
+                let step2 = (letter + tableID).split("");
 
-                    for (let j = 0; j < step1.length; j++){
+                    for (let m = 0; m < step1.length; m++){
                         for (let k=0; k < step2.length; k++){
-                            if(step1[j] == step2[k]){
-                                step1.splice(j, 1);
+                            if(step1[m] == step2[k]){
+                                step1.splice(m, 1);
                             }
                         }
                     }
 
                     let step3 = step1.join("");
                     let step4 = letter + step3
+
                     cleanLocations.push(step4)
             }
-
-                return cleanLocations;
         }
+            
+                return cleanLocations;
+        },
+        incrementingLetter(letter, occurence){
+
+            let alphabet = ("ABCDEFGHIJ").split("");
+        
+            for (let i = 0; i < alphabet.length; i++) {
+        
+                if (letter == alphabet[i]) {
+        
+                    let k = i + occurence;
+        
+                    return alphabet[k];
+        
+                }
+            }
+        }
+        //UTILITY METHODS ENDS HERE
     }
 })
