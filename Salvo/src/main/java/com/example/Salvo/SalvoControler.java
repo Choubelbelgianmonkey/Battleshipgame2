@@ -10,6 +10,7 @@ import org.springframework.security.crypto.factory.PasswordEncoderFactories;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
+import javax.xml.stream.Location;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -238,12 +239,12 @@ public class SalvoControler {
         //optional tell me that the value might be null
        GamePlayer gamePlayer = gamePlayerRepo.getOne(GamePlayerID);
 
-       gameViewDTO.put("game", getGameViewInfo(gamePlayer));
+       gameViewDTO.put("game", getGameViewInfo(gamePlayer, GamePlayerID));
 
         return gameViewDTO;
         }
 
-    private Map<String,Object> getGameViewInfo(GamePlayer gamePlayer){
+    private Map<String,Object> getGameViewInfo(GamePlayer gamePlayer, @PathVariable Long GamePlayerID){
         Map<String,Object> gameInfo  = new HashMap<>();
 
         gameInfo.put("id",gamePlayer.getGame().getId());
@@ -268,6 +269,11 @@ public class SalvoControler {
                 .stream()
                 .map(salvo -> makeSalvoDto(salvo))
                 .collect(toList()));
+
+        gameInfo.put("Hits", getOpponent(gamePlayer).getShips()
+                                            .stream()
+                                            .map(ship -> salvoAndShipDTO(ship, gamePlayer, GamePlayerID))
+                                            .collect(toList()));
         }
         return gameInfo;
     }
@@ -286,8 +292,36 @@ private Map<String, Object> makeSalvoDto (Salvo salvo){
 
     salvoDTO.put("turn",salvo.getTurnNumber());
     salvoDTO.put("location", salvo.getLocationSalvo());
-
         return salvoDTO;
+}
+
+private Set<String> salvoAndShipDTO (Ship opponentShip, GamePlayer gameplayer, @PathVariable Long GamePlayerID){
+
+        Set<String> listOfMatch = new HashSet<>();
+
+        GamePlayer currentGP = gamePlayerRepo.getOne(GamePlayerID);
+        Set<Salvo> mySalvoes = currentGP.getSalvoes();
+        List<String> opponentShipLocation = opponentShip.getLocation();
+        String opponentShipType = opponentShip.getType();
+
+    List<String> flatSalvoLocation =
+            mySalvoes.stream()
+                    .map(x -> x.getLocationSalvo())      //Stream<Set<String>>
+                    .flatMap(x -> x.stream())   //Stream<String>
+                    .distinct()
+                    .collect(Collectors.toList());
+
+    opponentShipLocation.forEach((x) -> {
+        if (flatSalvoLocation.contains(x)) {
+            listOfMatch.add(x);
+            if(!listOfMatch.contains(opponentShipType)){
+                listOfMatch.add(opponentShipType);
+            }
+
+        }
+        });
+
+        return listOfMatch;
 }
 
     private GamePlayer getOpponent(GamePlayer gamePlayer){

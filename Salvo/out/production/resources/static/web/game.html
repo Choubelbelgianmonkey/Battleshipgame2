@@ -64,12 +64,12 @@
 
                 <div>
 
-             <button type="button" v-on:click="updateShipsPosition()" class="btn btn-info">Ships ready!</button>
+             <button type="button" v-show="gameState == 'placingShips'" v-on:click="updateShipsPosition()" class="btn btn-info">Ships ready!</button>
 
 
                 </div>
 
-                <div><button type="button" v-on:click="sendSalvoes()" class="btn btn-info">Salvoes ready!</button></div>
+                <div><button type="button"  v-show="gameState == 'gameStarted'" v-on:click="sendSalvoes()" class="btn btn-info">Salvoes ready!</button></div>
 
 
             </div>

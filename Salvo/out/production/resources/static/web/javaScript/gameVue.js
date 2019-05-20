@@ -133,7 +133,7 @@ let salvo = new Vue({
                             salvo.playersVs();
                         })
                         .catch(error => console.log(error));
-                }, 10)
+                }, 50)
             ]);
         },
         populateTable(tableHTML) {
@@ -992,7 +992,7 @@ let salvo = new Vue({
             }
         },
         //SALVO MANAGEMENT ENDS HERE
-        //UTILITY METHODS STARTS HERE
+        //UTILITY METHODS STARTS HERExº
         cleanIDsForLocations(domElements, tableID){
 
             //as the "domElements" part from the method manageSalvoes() is an HTML collection, domElements.lenght == 0
