@@ -20,6 +20,7 @@ public class Ship {
 
     private String type;
 
+    private Integer amountOfHits;
 
     @ManyToOne(fetch = FetchType.EAGER)
         @JoinColumn(name="gameplayer_id")
@@ -32,10 +33,22 @@ public class Ship {
     public Ship() {
         }
 
+    public Ship(String type, List location) {
+        this.type = type;
+        this.location = location;
+    }
+
     public Ship(String type, List<String> location, GamePlayer gamePlayer) {
             this.type = type;
             this.location = location;
             this.gamePlayer = gamePlayer;
+    }
+
+    public Ship(String type, List<String> location, GamePlayer gamePlayer, Integer amountOfHits) {
+        this.type = type;
+        this.location = location;
+        this.gamePlayer = gamePlayer;
+        this.amountOfHits = amountOfHits;
     }
 
     public String getType() {
@@ -53,6 +66,10 @@ public class Ship {
     public void setLocation(List<String> location) {
         this.location = location;
     }
+
+    public Integer getAmountOfHits(){return amountOfHits;}
+
+    public void setAmountOfHits(Integer amountOfHits){this.amountOfHits = amountOfHits;}
 
     public GamePlayer getGamePlayer(){
 

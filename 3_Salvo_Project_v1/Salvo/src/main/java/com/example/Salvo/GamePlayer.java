@@ -75,7 +75,7 @@ public class GamePlayer {
     }
 
     public Set<Ship> getShips() {
-        return ships;
+        return this.ships;
     }
 
     public void setShips(Set<Ship> ships) {
@@ -91,8 +91,8 @@ public class GamePlayer {
         return salvoes;
     }
 
-    public void setSalvoes(Set<Salvo> salvoes) {
-        this.salvoes = salvoes;
+    public void setSalvoes(Salvo salvo) {
+        this.salvoes.add(salvo);
     }
 
     @Override

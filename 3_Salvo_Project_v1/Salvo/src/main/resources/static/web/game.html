@@ -14,9 +14,10 @@
 
 
     <link rel="icon" href="./images/favicon salvo.png" type="image/gif" sizes="16x16">
-
-    <script src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
     
+    <script src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
+   
+
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
 
 
@@ -26,32 +27,68 @@
 </head>
 
 
-<body>
+<body id="body"  class="outbound3">
 
-<div class="container">
-   
-    <div id="app">
+    <div class="container" id="body" id="body" @drop="dragEnd" @dragOver="dragEnter">
 
-        <h1>Battleship game!</h1>
+        <div id="app">
 
-        <div>              
-              <div>     
-                     <h4 id="gamers"></h4> 
-              </div>
-<div class="beautify col-sm">             
+            <div>  
 
-<div class="table1" id="table1"></div>
+                    <form>
+                            <input type="button" value="back" onclick="history.go(-1)">
+                          </form>
 
-     
-<div class="table2" id="table2"></div>
+            <h1>Battleship game!</h1>
+
         </div>
-           </div> 
+
+            <!--gamer display BEGIN here-->
+
+            <div>
+                <div>
+                    <h4 id="gamers"></h4>
+                </div>
+
+                <div class="beautify col-sm">
+
+<!--                    <div class="tableA" id="tableA" @drop="drop" @dragover="allowDrop"></div>-->
+<div class="tableA" id="tableA"></div>
+
+  <div class="checkBoard" id="checkBoard"></div>
+
+<!-- @drop="dragEnd" @dragOver="dragEnter" -->
+
+                    <div class="tableB" id="tableB"></div>
+
+                </div>
+
+                <div class="information">
                 <h4>My Boats</h4>
-                <li v-for="type in shipsName">{{type}}</li>
+                <li v-for="type in gpShips">{{type.type}}</li>
+                
+                <h4>His dammaged boats</h4>
+                <li v-for="damagedBoat in damagedBoats">{{damagedBoat}}</li>
+            </div>  
 
-</div>
+                <!--tables display END here-->
 
-</div>
+
+                <div>
+
+             <button type="button" v-show="gameState == 'placingShips'" v-on:click="updateShipsPosition()" class="btn btn-info">Ships ready!</button>
+
+                </div>
+
+                <div><button type="button"  v-show="gameState == 'gameStarted'" v-on:click="sendSalvoes()" class="btn btn-info">Salvoes ready!</button></div>
+
+
+            </div>
+
+
+        </div>
+
+    </div>
 
     <!--Vue script-->
     <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>

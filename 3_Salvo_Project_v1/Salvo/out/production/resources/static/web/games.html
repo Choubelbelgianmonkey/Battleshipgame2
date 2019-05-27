@@ -76,9 +76,10 @@
         
         {{game.id}}
         
-                 <button type="button" v-on:click="joingame(game.id)" class="btn">JOIN!</button>
+                 <button type="button" v-if="!checkPlayerInGame(game.gamePlayer)"  v-on:click="joinGame(game.id)" class="btn">JOIN!</button>
+                 <button type="button" v-else v-on:click="getMatchingGameplayer(game.gamePlayer)"  class="btn">REJOIN!</button>
         </li>
-        
+            
         <li v-for="game in gamesData" v-if="game.gamePlayer.length == 2">
         {{game.date}}, {{game.gamePlayer[0].player.username}} vs {{game.gamePlayer[1].player.username}} 
         {{game.id}}

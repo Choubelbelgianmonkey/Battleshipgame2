@@ -10,10 +10,20 @@ import org.springframework.security.crypto.factory.PasswordEncoderFactories;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
+import javax.xml.stream.Location;
+import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
 import static java.util.stream.Collectors.toList;
+
+
+
+//    package com.LinkedLists;
+
+import java.util.List;
+import java.util.Set;
+
 
 @RestController
 @RequestMapping("/api")
@@ -30,6 +40,9 @@ public class SalvoControler {
 
     @Autowired
     private  ShipRepository shipRepo;
+
+    @Autowired
+    private SalvoRepository salvoRepo;
 
     //get game info
 
@@ -56,7 +69,7 @@ public class SalvoControler {
         @PostMapping("/games2")
         ResponseEntity<Map<String, Object>> createGame(Authentication authentication) {
 
-                Game newGame = new Game();
+                Game newGame = new Game(LocalDateTime.now());
                 Player newPlayer = getLoggedPlayer(authentication);
                 GamePlayer newGamePlayer = new GamePlayer(newGame, newPlayer);
                 gameRepo.save(newGame);
@@ -67,7 +80,8 @@ public class SalvoControler {
 
         //join game
         @PostMapping("/game/{game_id}/players")
-        ResponseEntity<Map<String, Object>> createGame(@PathVariable Long game_id, Authentication authentication) {
+            ResponseEntity<Map<String, Object>> joinGame(@PathVariable Long game_id, Authentication authentication) {
+
             if (authentication == null) {
                 return new ResponseEntity<>(sendInfo("error", "You need to be logged in to join a Game! Please Log in or Sign up."), HttpStatus.UNAUTHORIZED);
             }
@@ -80,7 +94,14 @@ public class SalvoControler {
             if (currentGame.getGamePlayers().size() != 1) {
                 return new ResponseEntity<>(sendInfo("error", "Game is already full"), HttpStatus.FORBIDDEN);
             }
+
             Player currentPlayer = getLoggedPlayer(authentication);
+
+            for (GamePlayer gamePlayer : currentGame.getGamePlayers()) { //is the same as foreach in javascript because its en o
+                if (gamePlayer.getPlayer().equals(currentPlayer))
+                      return new ResponseEntity<>(sendInfo("error", "You are already there!"), HttpStatus.CONFLICT); ;
+            }
+
             GamePlayer newGamePlayer = new GamePlayer(currentGame, currentPlayer);
             gamePlayerRepo.save(newGamePlayer);
             return new ResponseEntity<>(sendInfo("gpid", newGamePlayer.getId()), HttpStatus.CREATED);
@@ -88,7 +109,7 @@ public class SalvoControler {
 
 
 
-      public Player getLoggedPlayer(Authentication authentication){
+        public Player getLoggedPlayer(Authentication authentication){
         if (authentication != null){
             return playerRepo.findByUsername(authentication.getName());
         } else{
@@ -167,6 +188,7 @@ public class SalvoControler {
 
         scores.put("score", playerRepo.findAll()
                 .stream()
+
                 .map(player -> playerInfo(player))
                 .sorted((e1, e2) -> {//each player from playerRepo are either e1 or e2, e2 being the player with higher output (output will be define below)
 
@@ -184,8 +206,6 @@ public class SalvoControler {
                     }
                     Integer count1 = ((ArrayList) e1.get("score")).size(); //setting up the value to compare below ...
                     Integer count2 = ((ArrayList) e2.get("score")).size(); // here is only the size, hence no need to map: counting the amount of stuff ...
-                                                                            // in an array is different from sum(), as we dont need to enter them
-
                     return count1.compareTo(count2); //now, for any other possiblities as the if statement above (so 1 and -1) compare the size()
 
                 })
@@ -217,12 +237,12 @@ public class SalvoControler {
         //optional tell me that the value might be null
        GamePlayer gamePlayer = gamePlayerRepo.getOne(GamePlayerID);
 
-       gameViewDTO.put("game", getGameViewInfo(gamePlayer));
+       gameViewDTO.put("game", getGameViewInfo(gamePlayer, GamePlayerID));
 
         return gameViewDTO;
         }
 
-    private Map<String,Object> getGameViewInfo(GamePlayer gamePlayer){
+    private Map<String,Object> getGameViewInfo(GamePlayer gamePlayer, @PathVariable Long GamePlayerID){
         Map<String,Object> gameInfo  = new HashMap<>();
 
         gameInfo.put("id",gamePlayer.getGame().getId());
@@ -247,26 +267,118 @@ public class SalvoControler {
                 .stream()
                 .map(salvo -> makeSalvoDto(salvo))
                 .collect(toList()));
+
+        gameInfo.put("Hits", getOpponent(gamePlayer).getShips()
+                                            .stream()
+                                            .map(ship -> salvoAndShipDTO(ship, gamePlayer, GamePlayerID))
+                                            .collect(toList()));
+        gameInfo.put("myGameHistory", gamePlayer.getSalvoes()
+                                                .stream()
+                .sorted((salvo1, salvo2)-> salvo1.getTurnNumber().compareTo(salvo2.getTurnNumber()))
+                                                .map(salvo -> computeHitAndSink(salvo, gamePlayer))
+                                                .collect(toList()));
         }
+
         return gameInfo;
     }
+
+    private Map<String, Object> computeHitAndSink (Salvo salvo, GamePlayer gamePlayer){
+
+        //start with the needed variable:
+
+        Map<String, Object> computeHitAndSink = new HashMap<>();
+        Map<String, Object> computeHitAndSinkSecond = new HashMap<>();
+
+        List<String> mySalvoLocation = salvo.getLocationSalvo();
+        Set<Ship> hisShips = getOpponent(gamePlayer).getShips();
+
+        //variable to add on the Hashtable above:
+        Long myTurnNumber = salvo.getTurnNumber();
+
+        for (Ship ship: hisShips){
+
+            Map<String, Object> computeHitAndSinkThird = new HashMap<>();
+
+
+            List<String> hisShipLocations = ship.getLocation();
+            Integer hisShipSize = hisShipLocations.size();
+
+            computeHitAndSinkThird.put("shipSize", hisShipSize);
+
+            String currentShipType = ship.getType();
+            Integer amountOfHitPerBoat = ship.getAmountOfHits();
+            String hisShipState = "fighting";
+
+            for(String location: hisShipLocations){
+                if (mySalvoLocation.contains(location)){
+                amountOfHitPerBoat++;
+            }
+            ship.setAmountOfHits(amountOfHitPerBoat);
+            }
+
+            computeHitAndSinkThird.put("amountOfHits", amountOfHitPerBoat);
+
+            if(amountOfHitPerBoat == hisShipSize){
+                hisShipState = "sunk";
+            }
+
+            computeHitAndSinkThird.put("shipState", hisShipState);
+
+            computeHitAndSinkSecond.put(currentShipType, computeHitAndSinkThird);
+
+        }
+
+        computeHitAndSink.put("turnNumber"+myTurnNumber, computeHitAndSinkSecond);
+
+        return computeHitAndSink;
+    }
+
 
     private Map<String, Object> makeShipDto(Ship ship) {
         Map<String,Object> shipDTO  = new HashMap<>();
         shipDTO.put("type", ship.getType());
-        shipDTO.put("locations", ship.getLocation());
+        shipDTO.put("location", ship.getLocation());
 
         return shipDTO;
     }
 
-private Map<String, Object> makeSalvoDto (Salvo salvo){
+    private Map<String, Object> makeSalvoDto (Salvo salvo){
 
         Map<String, Object> salvoDTO = new HashMap<>();
 
-    salvoDTO.put("turn",salvo.getTurnNumber());
-    salvoDTO.put("location", salvo.getLocationSalvo());
-
+        salvoDTO.put("turn",salvo.getTurnNumber());
+        salvoDTO.put("location", salvo.getLocationSalvo());
         return salvoDTO;
+}
+
+private Set<String> salvoAndShipDTO (Ship opponentShip, GamePlayer gameplayer, @PathVariable Long GamePlayerID){
+
+        Set<String> listOfMatch = new HashSet<>();
+
+        GamePlayer currentGP = gamePlayerRepo.getOne(GamePlayerID);
+        Set<Salvo> mySalvoes = currentGP.getSalvoes();
+        List<String> opponentShipLocation = opponentShip.getLocation();
+        String opponentShipType = opponentShip.getType();
+
+
+    List<String> flatSalvoLocation =
+            mySalvoes.stream()
+                    .map(x -> x.getLocationSalvo())
+                    .flatMap(x -> x.stream())
+                    .distinct()//useless o this case as the salvolocation cannot be twice the same, but i left it there as reminder
+                    .collect(Collectors.toList());
+
+    opponentShipLocation.forEach((x) -> {
+        if (flatSalvoLocation.contains(x)) {
+            listOfMatch.add(x);
+            if(!listOfMatch.contains(opponentShipType)){
+                listOfMatch.add(opponentShipType);
+            }
+
+        }
+        });
+
+        return listOfMatch;
 }
 
     private GamePlayer getOpponent(GamePlayer gamePlayer){
@@ -284,7 +396,7 @@ private Map<String, Object> makeSalvoDto (Salvo salvo){
 
             //this will get the called gampeplayer (between ()) sorted by games, then filter them (while calling each one gamaplayer1)
             //for each gameplayer1, if the ID of the called gameplayer is not equal to the id of the gameplayer1
-            //you return it, if you dont find it(EG: only one player) return null
+        //you return it, if you dont find it(EG: only one player) return null
 
     }
 
@@ -316,20 +428,20 @@ private Map<String, Object> makeSalvoDto (Salvo salvo){
 //        ... or player.getpassword to define the same
 
                 if (player.getUsername().isEmpty() || player.getPassword().isEmpty()) {
-            return new ResponseEntity<>("Missing data", HttpStatus.FORBIDDEN);
-        }
+        return new ResponseEntity<>("Missing data", HttpStatus.FORBIDDEN);
+    }
 
 
         if (playerRepo.findByUsername(player.getUsername()) !=  null) {
-            return new ResponseEntity<>("Name already in use", HttpStatus.CONFLICT);
-        }
+        return new ResponseEntity<>("Name already in use", HttpStatus.CONFLICT);
+    }
 
         player.setPassword(passwordEncoder.encode(player.getPassword()));
 
         playerRepo.save(player);
-        //its important to note that as i encode the password in salvo application, it must encore while creating a new one in the front end
+    //its important to note that as i encode the password in salvo application, it must encore while creating a new one in the front end
         return new ResponseEntity<>(HttpStatus.CREATED);
-    }
+}
 
     private PasswordEncoder passwordEncoder() {
          return PasswordEncoderFactories.createDelegatingPasswordEncoder();
@@ -340,4 +452,93 @@ private Map<String, Object> makeSalvoDto (Salvo salvo){
         map.put(key, value);
         return map;
     }
+
+    @PostMapping("/games/players/{gamePlayerId}/ships")
+    public ResponseEntity<Map<String, Object>> creatingShips (@PathVariable Long gamePlayerId, Authentication authentication, @RequestBody  Set<Ship> ships){
+
+        Long connectedPlayer = getLoggedPlayer(authentication).getId();
+        GamePlayer currentGP = gamePlayerRepo.getOne(gamePlayerId);
+        Set<Ship> currentShip = currentGP.getShips();
+
+
+        if (authentication == null) {
+            return new ResponseEntity<>(sendInfo("error", "You need to be logged in to create your ships! Please Log in or Sign up."), HttpStatus.UNAUTHORIZED);
+        }
+
+        if (currentGP.getId() == null) {
+            return new ResponseEntity<>(sendInfo("error", "Your GamePlayer ID have no match!"), HttpStatus.UNAUTHORIZED);
+        }
+
+        if (currentGP.getPlayer().getId() != connectedPlayer){
+            return new ResponseEntity<>(sendInfo("error", "Your GamePlayer ID dont match the one of the connected player!"), HttpStatus.UNAUTHORIZED);
+         }
+
+        if (currentShip.size() >= 5) {
+            return new ResponseEntity<>(sendInfo("error", "Your ships are already placed!"), HttpStatus.FORBIDDEN);
+        }
+
+        if (ships.size() != 5){
+            return new ResponseEntity<>(sendInfo("error", "you are either putting too much ships or not enough!"), HttpStatus.FORBIDDEN);
+            }
+
+        else{
+            for (Ship ship : ships) {
+                ship.setGamePlayer(currentGP);
+                shipRepo.save(ship);
+            }
+                return new ResponseEntity<>(sendInfo("OK", "Ship positions saved successfully!"), HttpStatus.CREATED);
+        }
+    }
+
+    @PostMapping("/games/players/{gamePlayerId}/salvoes")
+    public ResponseEntity<Map<String, Object>> creatingSalvoes(@PathVariable Long gamePlayerId, Authentication authentication, @RequestBody  List<String> salvoes){
+
+            //first check if the amount of salvo is the correct one
+
+        int checkAmountSalvoes = salvoes.size();
+
+        if(checkAmountSalvoes != 5){
+            return new ResponseEntity<>(sendInfo("error", "The server cannot accept more or less than 5 salvoes!"), HttpStatus.LOCKED);
+        }
+
+        //then we check if the connected player is the good one, and if the opponent is connected
+
+        Long connectedPlayer = getLoggedPlayer(authentication).getId();
+        GamePlayer currentGP = gamePlayerRepo.getOne(gamePlayerId);
+        GamePlayer opponent = getOpponent(currentGP);
+
+        if(opponent == null){
+            return new ResponseEntity<>(sendInfo("error", "You need to wait until your oppponent arrives!"), HttpStatus.LOCKED);
+        }
+
+        if (authentication == null) {
+            return new ResponseEntity<>(sendInfo("error", "You need to be logged in to fire your salvoes!! Please Log in or Sign up."), HttpStatus.UNAUTHORIZED);
+        }
+
+        if(connectedPlayer != currentGP.getPlayer().getId()){
+            return new ResponseEntity<>(sendInfo("error", "Your GamePlayer ID dont match the one of the connected player!"), HttpStatus.UNAUTHORIZED);
+        }
+
+        if (currentGP.getId() == null) {
+            return new ResponseEntity<>(sendInfo("error", "Your GamePlayer ID have no match!"), HttpStatus.UNAUTHORIZED);
+        }
+
+        //making sure we are waiting the other player
+
+        Integer opponentSalvoTurn = opponent.getSalvoes().size();
+        Integer currentGPSalvoTurn = currentGP.getSalvoes().size();
+
+        if (currentGPSalvoTurn > opponentSalvoTurn){
+            return new ResponseEntity<>(sendInfo("error", "you need to wait until your opponent played!"), HttpStatus.FORBIDDEN);
+        }
+
+        else {
+
+            Salvo salvo = new Salvo(currentGPSalvoTurn +1,salvoes,currentGP);
+            salvoRepo.save(salvo);
+            currentGP.setSalvoes(salvo);
+
+            return new ResponseEntity<>(sendInfo("OK", "Salvoe saved successfully!"), HttpStatus.CREATED);}
+    }
 }
+

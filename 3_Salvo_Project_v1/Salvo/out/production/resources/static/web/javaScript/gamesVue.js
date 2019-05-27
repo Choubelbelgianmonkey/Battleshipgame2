@@ -9,8 +9,6 @@ let salvo = new Vue({
     },
 
     updated() {
-
-
     },
 
     data: {
@@ -20,7 +18,6 @@ let salvo = new Vue({
         
         scoresData: [],
        
-        
         urlGames: "/api/games",
         urlScores: "/api/leaderboard",
         
@@ -29,11 +26,10 @@ let salvo = new Vue({
         password: "",
         lastname: "",
         firstname: "",
-        
+       
     },
     
     methods: {
-        
         getData() {
 
             var urlGames = "/api/games2";
@@ -54,8 +50,7 @@ let salvo = new Vue({
         ]).
             
             then(this.leaderBoard)
-        },
-        
+        },  
         validateEmail() {
             
             let email = this.username
@@ -63,8 +58,7 @@ let salvo = new Vue({
   var re = /^(([^<>()[\]\\.,;:\s@\"]+(\.[^<>()[\]\\.,;:\s@\"]+)*)|(\".+\"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
             
   return re.test(email);
-},
-        
+        },
         subscribe(){
             
             if(this.validateEmail() == false){alert("please add an emaill address as username")}
@@ -87,7 +81,6 @@ let salvo = new Vue({
                 }).then(this.login)])}
 
         },
-        
         leaderBoard() {
 
             //those elements below will be use to create the table
@@ -235,7 +228,6 @@ let salvo = new Vue({
             leaderBoard.appendChild(table);
 
         },
-        
         getBody(user) {
             var body = [];
             for (var key in user) {
@@ -245,7 +237,6 @@ let salvo = new Vue({
             }
             return body.join("&");
         },
-        
         login() {
             fetch("/api/login", {
                     credentials: 'include', //keeps you logged in
@@ -266,7 +257,6 @@ let salvo = new Vue({
                     console.log('Request failure: ', error);
                 });
         },
-        
         logout() {
             fetch("/api/logout", {
                     method: "POST",
@@ -279,27 +269,19 @@ let salvo = new Vue({
                 })
                 .catch(error => console.log(error))
         },
-        
-        //those two functions works togethers START
-
-        getMatchingGameplayer(gamePlayers) {          
+        getMatchingGameplayer(gamePlayers) { 
+            
+            console.log(gamePlayers)
             
             for (let i = 0; i < gamePlayers.length; i++){
                 
                 if (gamePlayers[i].player.username == this.currentPlayer.username){
-                    return this.joinGame(gamePlayers[i].id) 
+                    return window.location.href = '/web/game.html?gp=' +gamePlayers[i].id; 
+//                    
+//                    this.joinGame(gamePlayers[i].id) 
                 }
             }
-        },
-        
-        joinGame(GP_ID){
-            
-            window.location.href = '/web/game.html?gp=' + GP_ID;
-            
-        },
-        
-          //those two functions works togethers START
-        
+        },      
         checkPlayerInGame(gamePlayers){
                
             for (let i = 0; i < gamePlayers.length; i++ ){
@@ -309,12 +291,8 @@ let salvo = new Vue({
                 }
             }
         },
-        
         createNewGame(){
-            
-            
-            
-            
+                
                    var myInit = { method: 'POST',
                                mode: 'cors',
                                cache: 'default' };         
@@ -339,8 +317,7 @@ let salvo = new Vue({
             
         
         },
-        
-        joingame(gameID){
+        joinGame(gameID){
             
                         
                    var myInit = { method: 'POST',
@@ -350,29 +327,66 @@ let salvo = new Vue({
                 fetch("/api/game/"+gameID+"/players", myInit)
                     
                     .then(function(response) {
-                        if (response.ok) {return response.json();}})
+                    
+                        return response.json()
+                         
+                })
+            
                     .then(function(json) {                     
                     
                         console.log(json)
                     
-                   if(json.hasOwnProperty("error")){
-                      alert(json.error)  }
+                    var GameplayerID = json.gpid
+                        
+                        window.location.href = "/web/game.html?gp="+ GameplayerID
+                    
                 
-
                 })
                     .catch(function(error) {
                     
                   console.log( "Request failed: " + error.message );
-                        
-                             
-                   if(json.hasOwnProperty("error")){
-                      alert(json.error)  }
-
+                        console.log(error)
                 });
             
             
-        }
+        },  
+        sendShips(){
+            
+                        
+            let url = "/api/games/players/" + 7 + "/ships";
+            const myInit = { method: 'POST',
+                               mode: 'cors',
+                               cache: 'default',
+                                headers: {
+                                        "Content-Type": "application/json"},
+ 
+                                body: JSON.stringify([
+                               
+                                { "type": "destroyer", "locations": ["A1", "B1", "C1"], "gamePlayer":"7" },
+                                { "type": "patrol boat", "locations": ["H5", "H6"], "gamePlayer":"7 " }
+                                ])};     
+                               
+                
+            fetch(url, myInit)
+            .then(function(response){
+                return response.json()
+            })
+            .then(function(gameJson){
+                
+                console.log(gameJson)
+                    
+            })
+                    .catch(function(error) {
+                    
+                  console.log( "Request failed: " + error.message );
+                        console.log(error)
+                });
+            
+            
+            
         
+            
+        }
     }
     
 })

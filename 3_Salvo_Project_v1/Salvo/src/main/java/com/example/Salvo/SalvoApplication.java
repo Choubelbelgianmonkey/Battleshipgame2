@@ -150,20 +150,25 @@ public class SalvoApplication {
             List<String> location5 = Arrays.asList("F1", "F2");
 
 
-            Ship ship1 = new Ship("Destroyer", location1, gp1);
+            Ship ship1 = new Ship("Destroyer", location1);
             shipRepository.save(ship1);
+            gp1.addShip(ship1);
 
-            Ship ship2 = new Ship("Submarine", location2, gp1);
+            Ship ship2 = new Ship("Submarine", location2);
             shipRepository.save(ship2);
+            gp1.addShip(ship2);
 
-            Ship ship3 = new Ship("Patrol Boat", location3, gp1);
+            Ship ship3 = new Ship("Patrol Boat", location3);
             shipRepository.save(ship3);
+            gp1.addShip(ship3);
 
-            Ship ship4  = new Ship("Destroyer", location4, gp2);
+            Ship ship4  = new Ship("Destroyer", location4);
             shipRepository.save(ship4);
+            gp2.addShip(ship4);
 
-            Ship ship5  = new Ship("Patrol Boat", location5, gp2);
+            Ship ship5  = new Ship("Patrol Boat", location5);
             shipRepository.save(ship5);
+            gp2.addShip(ship5);
 
             //ships for GAME 1 END here
 
@@ -176,6 +181,7 @@ public class SalvoApplication {
 
             Ship ship6 = new Ship("Destroyer", location6, gp3);
             shipRepository.save(ship6);
+
             Ship ship7 = new Ship("Patrol Boat", location7, gp3);
             shipRepository.save(ship7);
             Ship ship8  = new Ship("Submarine", location8, gp4);
@@ -261,7 +267,7 @@ public class SalvoApplication {
             Ship ship27  = new Ship("Patrol Boat", location9, gp14);
             shipRepository.save(ship27);
 
-            //ships for GAME 8 END here
+//            //ships for GAME 8 END here
 
             //salvoes for GAME 1 START here
 
@@ -449,6 +455,7 @@ class WebSecurityConfig extends WebSecurityConfigurerAdapter {
                 .antMatchers("/web/games.html").permitAll()
                 .antMatchers("/web/game.html").hasAuthority("USER")
                 .antMatchers("/api").permitAll()
+                .antMatchers("/rest/**").permitAll()
                 .and()
                 .formLogin();
 
